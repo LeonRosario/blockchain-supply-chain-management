@@ -1,0 +1,2 @@
+# blockchain-supply-chain-management
+A blockchain-powered supply chain management system that enables transparent product tracking, secure ownership transfers, shipment monitoring, and QR-based product authenticity verification using smart contracts.
