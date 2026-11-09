@@ -1,4 +1,40 @@
-// Shared / API response types
+// ─── Re-exports ───────────────────────────────────────────────────────────────
+export type {
+  User,
+  AuthUser,
+  LoginCredentials,
+  RegisterCredentials,
+  UserRole,
+} from './user.types';
+export { USER_ROLES } from './user.types';
+
+export type {
+  Product,
+  CreateProductPayload,
+  UpdateProductPayload,
+  ProductStatus,
+} from './product.types';
+
+export type {
+  Shipment,
+  ShipmentItem,
+  CreateShipmentPayload,
+  ShipmentStatus,
+} from './shipment.types';
+
+export type {
+  BlockchainTransaction,
+  TransactionType,
+} from './blockchain.types';
+
+export type {
+  Inventory,
+  InventoryMovement,
+  UpdateInventoryPayload,
+  MovementType,
+} from './inventory.types';
+
+// ─── Shared API ───────────────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   data: T;
   message: string;
@@ -18,9 +54,3 @@ export interface ApiError {
   statusCode: number;
   errors?: Record<string, string[]>;
 }
-
-export type { User, AuthUser, LoginCredentials, RegisterCredentials } from './user.types';
-export type { Product, CreateProductPayload, UpdateProductPayload, ProductStatus } from './product.types';
-export type { Shipment, ShipmentItem, CreateShipmentPayload, ShipmentStatus } from './shipment.types';
-export type { BlockchainTransaction, TransactionType } from './blockchain.types';
-export type { Inventory, InventoryMovement, UpdateInventoryPayload, MovementType } from './inventory.types';

@@ -1,8 +1,8 @@
 import { useAuthContext } from '@/context/AuthContext';
 
 /**
- * Convenience hook for accessing the auth context.
- * Provides current user state and auth actions.
+ * Primary hook for auth state and actions.
+ * Wraps useAuthContext for a cleaner import path.
  */
 export function useAuth() {
   return useAuthContext();
