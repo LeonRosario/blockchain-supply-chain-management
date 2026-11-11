@@ -13,6 +13,8 @@ export type {
   CreateProductPayload,
   UpdateProductPayload,
   ProductStatus,
+  ProductFilters,
+  ProductStats,
 } from './product.types';
 
 export type {

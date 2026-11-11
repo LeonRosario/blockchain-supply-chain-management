@@ -20,6 +20,7 @@ import ProductsPage               from '@/pages/dashboard/ProductsPage';
 import AddProductPage             from '@/pages/dashboard/AddProductPage';
 import ShipmentsPage              from '@/pages/dashboard/ShipmentsPage';
 import InventoryPage              from '@/pages/dashboard/InventoryPage';
+import EditProductPage            from '@/pages/dashboard/EditProductPage';
 import BlockchainTransactionsPage from '@/pages/dashboard/BlockchainTransactionsPage';
 import QrVerificationPage         from '@/pages/dashboard/QrVerificationPage';
 import AnalyticsPage              from '@/pages/dashboard/AnalyticsPage';
@@ -55,11 +56,12 @@ export default function AppRoutes() {
 
           {/* Staff roles (everyone except customer) */}
           <Route element={<RoleRoute allowedRoles={['admin','manufacturer','distributor','warehouse_manager','retailer']} />}>
-            <Route path="/dashboard/products"       element={<ProductsPage />} />
-            <Route path="/dashboard/products/add"   element={<AddProductPage />} />
-            <Route path="/dashboard/shipments"      element={<ShipmentsPage />} />
-            <Route path="/dashboard/inventory"      element={<InventoryPage />} />
-            <Route path="/dashboard/analytics"      element={<AnalyticsPage />} />
+            <Route path="/dashboard/products"        element={<ProductsPage />} />
+            <Route path="/dashboard/products/add"    element={<AddProductPage />} />
+            <Route path="/dashboard/products/edit/:id" element={<EditProductPage />} />
+            <Route path="/dashboard/shipments"       element={<ShipmentsPage />} />
+            <Route path="/dashboard/inventory"       element={<InventoryPage />} />
+            <Route path="/dashboard/analytics"       element={<AnalyticsPage />} />
           </Route>
 
           {/* Blockchain — supply chain actors only */}
