@@ -3,23 +3,28 @@ import { formatDate } from '@/utils/formatDate';
 import type { Product, ProductStatus } from '@/types';
 import {
   Button,
-  Badge,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  Input,
+  Skeleton,
 } from '@/components/ui';
 import {
   Search,
-  Filter,
   ChevronDown,
   ChevronUp,
   Eye,
   Edit,
   Trash2,
   Download,
+  PackageSearch,
+  X,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import StatusBadge, { type StatusTone } from '@/components/common/StatusBadge';
+import EmptyState from '@/components/common/EmptyState';
+import Pagination from '@/components/common/Pagination';
 
 interface ProductTableProps {
   products: Product[];
@@ -35,12 +40,12 @@ interface ProductTableProps {
   onPageSizeChange?: (size: number) => void;
 }
 
-const statusConfig: Record<ProductStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  active: { label: 'Active', variant: 'default' },
-  inactive: { label: 'Inactive', variant: 'secondary' },
-  recalled: { label: 'Recalled', variant: 'destructive' },
-  in_transit: { label: 'In Transit', variant: 'outline' },
-  delivered: { label: 'Delivered', variant: 'default' },
+const statusConfig: Record<ProductStatus, { label: string; tone: StatusTone; pulse?: boolean }> = {
+  active: { label: 'Active', tone: 'info' },
+  inactive: { label: 'Inactive', tone: 'neutral' },
+  recalled: { label: 'Recalled', tone: 'danger' },
+  in_transit: { label: 'In Transit', tone: 'warning', pulse: true },
+  delivered: { label: 'Delivered', tone: 'success' },
 };
 
 const categories = [
@@ -54,9 +59,29 @@ const categories = [
   'Consumer Goods',
 ];
 
-type SortableKey = 'productId' | 'name' | 'category' | 'manufacturer' | 'status' | 'quantity' | 'price' | 'manufacturingDate';
+type SortableKey =
+  | 'productId'
+  | 'name'
+  | 'category'
+  | 'manufacturer'
+  | 'status'
+  | 'quantity'
+  | 'price'
+  | 'manufacturingDate';
 
-const sortableKeys: SortableKey[] = ['productId', 'name', 'category', 'manufacturer', 'status', 'quantity', 'price', 'manufacturingDate'];
+const sortableKeys: SortableKey[] = [
+  'productId',
+  'name',
+  'category',
+  'manufacturer',
+  'status',
+  'quantity',
+  'price',
+  'manufacturingDate',
+];
+
+const selectClass =
+  'h-10 rounded-lg border border-input bg-background/70 px-3 text-sm shadow-sm transition-colors focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20';
 
 export default function ProductTable({
   products,
@@ -74,7 +99,10 @@ export default function ProductTable({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatus | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortableKey;
+    direction: 'asc' | 'desc';
+  } | null>(null);
 
   const filteredProducts = useMemo(() => {
     let result = products;
@@ -124,14 +152,22 @@ export default function ProductTable({
     });
   };
 
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+  };
+
+  const hasFilters = search !== '' || statusFilter !== 'all' || categoryFilter !== 'all';
+
   const SortIcon = ({ columnKey }: { columnKey: SortableKey }) => {
     if (sortConfig?.key !== columnKey) {
-      return <ChevronDown className="w-4 h-4 text-muted-foreground" />;
+      return <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" />;
     }
     return sortConfig.direction === 'asc' ? (
-      <ChevronUp className="w-4 h-4 text-primary" />
+      <ChevronUp className="h-3.5 w-3.5 text-primary" />
     ) : (
-      <ChevronDown className="w-4 h-4 text-primary" />
+      <ChevronDown className="h-3.5 w-3.5 text-primary" />
     );
   };
 
@@ -150,49 +186,59 @@ export default function ProductTable({
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="h-10 w-3/4 animate-pulse bg-gray-100 rounded" />
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 animate-pulse bg-gray-100 rounded" />
-            ))}
-          </div>
+        <CardHeader className="gap-3">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-10 w-full max-w-xl" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-10 w-full" />
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-14 w-full" />
+          ))}
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xl">Products</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1">
-            <Filter className="w-4 h-4" />
-            Filters
-          </Button>
+    <Card className="overflow-hidden">
+      <CardHeader className="gap-4 border-b border-border/60 pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle className="text-lg">Product catalog</CardTitle>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {filteredProducts.length} of {products.length} records shown
+          </p>
         </div>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="mr-1.5 h-3.5 w-3.5" />
+            Clear filters
+          </Button>
+        )}
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="pt-5">
         {/* Search and Filters */}
-        <div className="mb-4 flex flex-col sm:flex-row gap-4">
+        <div className="mb-5 flex flex-col gap-3 lg:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search products..."
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by name, ID, SKU, category, or manufacturer…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="pl-9"
+              aria-label="Search products"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ProductStatus | 'all')}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+              className={selectClass}
+              aria-label="Filter by status"
             >
-              <option value="all">All Status</option>
+              <option value="all">All statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="in_transit">In Transit</option>
@@ -202,144 +248,186 @@ export default function ProductTable({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+              className={selectClass}
+              aria-label="Filter by category"
             >
-              <option value="all">All Categories</option>
+              <option value="all">All categories</option>
               {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
               ))}
             </select>
           </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={cn(
-                      'px-4 py-3 text-left font-medium text-muted-foreground',
-                      sortableKeys.includes(col.key as SortableKey) && 'cursor-pointer hover:text-foreground'
-                    )}
-                    onClick={() => sortableKeys.includes(col.key as SortableKey) && handleSort(col.key as SortableKey)}
-                  >
-                    <div className="flex items-center gap-1">
-                      {col.label}
-                      {sortableKeys.includes(col.key as SortableKey) && (
-                        <SortIcon columnKey={col.key as SortableKey} />
-                      )}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">
-                    No products found
-                  </td>
+        {filteredProducts.length === 0 ? (
+          <EmptyState
+            icon={PackageSearch}
+            title="No matching products"
+            description={
+              hasFilters
+                ? 'Try adjusting the search or filters to find a product.'
+                : 'No product records are available yet.'
+            }
+            action={
+              hasFilters ? (
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead>
+                <tr className="border-b border-border/70">
+                  {columns.map((col) => {
+                    const sortable = sortableKeys.includes(col.key as SortableKey);
+                    const isSorted = sortConfig?.key === col.key;
+                    return (
+                      <th
+                        key={col.key}
+                        scope="col"
+                        aria-sort={
+                          isSorted
+                            ? sortConfig?.direction === 'asc'
+                              ? 'ascending'
+                              : 'descending'
+                            : undefined
+                        }
+                        className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                      >
+                        {sortable ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSort(col.key as SortableKey)}
+                            className={cn(
+                              'flex items-center gap-1 rounded text-left transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              isSorted && 'text-foreground'
+                            )}
+                          >
+                            {col.label}
+                            <SortIcon columnKey={col.key as SortableKey} />
+                          </button>
+                        ) : (
+                          col.label
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
-              ) : (
-                filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-sm">{product.productId}</td>
-                    <td className="px-4 py-3 font-medium">{product.name}</td>
-                    <td className="px-4 py-3">{product.category}</td>
-                    <td className="px-4 py-3">{product.manufacturer}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={statusConfig[product.status]?.variant || 'secondary'}>
-                        {statusConfig[product.status]?.label || product.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">{product.quantity}</td>
-                    <td className="px-4 py-3">${product.price.toLocaleString()}</td>
-                    <td className="px-4 py-3">{formatDate(product.manufacturingDate)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onView(product)}
-                          className="h-8 w-8"
-                          title="View"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEdit(product)}
-                          className="h-8 w-8"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDownloadQR(product)}
-                          className="h-8 w-8"
-                          title="Download QR"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDelete(product)}
-                          className="h-8 w-8 text-red-600 hover:text-red-700"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filteredProducts.map((product, index) => {
+                  const status = statusConfig[product.status] ?? {
+                    label: product.status,
+                    tone: 'neutral' as StatusTone,
+                  };
+                  return (
+                    <tr
+                      key={product.id}
+                      className="group animate-in fade-in-0 slide-in-from-bottom-1 duration-300 hover:bg-primary/[0.035]"
+                      style={{
+                        animationDelay: `${Math.min(index, 8) * 25}ms`,
+                        animationFillMode: 'both',
+                      }}
+                    >
+                      <td className="whitespace-nowrap px-3 py-3.5 font-mono text-xs">
+                        {product.productId}
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <p className="font-medium">{product.name}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                          {product.sku}
+                        </p>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3.5 text-muted-foreground">
+                        {product.category}
+                      </td>
+                      <td className="px-3 py-3.5 text-muted-foreground">
+                        {product.manufacturer}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3.5">
+                        <StatusBadge
+                          label={status.label}
+                          tone={status.tone}
+                          dot
+                          pulse={status.pulse}
+                        />
+                      </td>
+                      <td className="px-3 py-3.5 tabular-nums">{product.quantity}</td>
+                      <td className="whitespace-nowrap px-3 py-3.5 tabular-nums">
+                        ${product.price.toLocaleString()}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3.5 text-muted-foreground">
+                        {formatDate(product.manufacturingDate)}
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <div className="flex items-center justify-end gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onView(product)}
+                            className="h-8 w-8"
+                            title="View product"
+                            aria-label={`View ${product.name}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onEdit(product)}
+                            className="h-8 w-8"
+                            title="Edit product"
+                            aria-label={`Edit ${product.name}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDownloadQR(product)}
+                            className="h-8 w-8"
+                            title="Download QR code"
+                            aria-label={`Download QR code for ${product.name}`}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDelete(product)}
+                            className="h-8 w-8 text-danger hover:bg-danger/10 hover:text-danger"
+                            title="Delete product"
+                            aria-label={`Delete ${product.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination */}
         {totalCount > 0 && onPageChange && (
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * pageSize) + 1} to{' '}
-              {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={pageSize}
-                onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-                className="px-3 py-1 border border-gray-200 rounded-lg text-sm"
-              >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage <= 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage * pageSize >= totalCount}
-              >
-                Next
-              </Button>
-            </div>
+          <div className="mt-5">
+            <Pagination
+              page={currentPage}
+              totalPages={Math.ceil(totalCount / pageSize)}
+              total={totalCount}
+              limit={pageSize}
+              onPageChange={onPageChange}
+              onLimitChange={onPageSizeChange}
+            />
           </div>
         )}
       </CardContent>

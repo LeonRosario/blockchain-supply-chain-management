@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'motion/react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -21,6 +22,7 @@ import {
   CardTitle,
 } from '@/components/ui';
 import {
+  CopyButton,
   DemoDataBanner,
   EmptyState,
   InfoField,
@@ -28,6 +30,7 @@ import {
 } from '@/components/common';
 import type { ProductVerificationResult } from '@/types';
 import {
+  cn,
   formatDate,
   formatDateTime,
   getOwnershipStatusMeta,
@@ -40,6 +43,7 @@ interface VerificationResultCardProps {
 }
 
 export default function VerificationResultCard({ result }: VerificationResultCardProps) {
+  const reduce = useReducedMotion();
   const isVerified =
     result.authenticityStatus === 'verified' && result.blockchainVerified === true;
 
@@ -49,10 +53,10 @@ export default function VerificationResultCard({ result }: VerificationResultCar
         description:
           'The blockchain service explicitly confirmed this product record as authentic.',
         icon: ShieldCheck,
-        wrapper: 'border-green-200 bg-green-50',
-        iconWrapper: 'bg-green-100 text-green-700',
-        titleClass: 'text-green-900',
-        textClass: 'text-green-800',
+        wrapper: 'border-success/30 bg-success/[0.07]',
+        iconWrapper: 'bg-success/15 text-success ring-1 ring-inset ring-success/25',
+        titleClass: 'text-foreground',
+        textClass: 'text-muted-foreground',
       }
     : result.authenticityStatus === 'unavailable'
       ? {
@@ -60,10 +64,10 @@ export default function VerificationResultCard({ result }: VerificationResultCar
           description:
             'No authenticity result was received. This product must NOT be treated as verified.',
           icon: AlertTriangle,
-          wrapper: 'border-amber-200 bg-amber-50',
-          iconWrapper: 'bg-amber-100 text-amber-700',
-          titleClass: 'text-amber-900',
-          textClass: 'text-amber-800',
+          wrapper: 'border-warning/30 bg-warning/[0.07]',
+          iconWrapper: 'bg-warning/15 text-warning ring-1 ring-inset ring-warning/25',
+          titleClass: 'text-foreground',
+          textClass: 'text-muted-foreground',
         }
       : result.authenticityStatus === 'not_found'
         ? {
@@ -71,48 +75,89 @@ export default function VerificationResultCard({ result }: VerificationResultCar
             description:
               'The blockchain service has no verification record for this product. It is not verified.',
             icon: SearchX,
-            wrapper: 'border-red-200 bg-red-50',
-            iconWrapper: 'bg-red-100 text-red-700',
-            titleClass: 'text-red-900',
-            textClass: 'text-red-800',
+            wrapper: 'border-danger/30 bg-danger/[0.07]',
+            iconWrapper: 'bg-danger/15 text-danger ring-1 ring-inset ring-danger/25',
+            titleClass: 'text-foreground',
+            textClass: 'text-muted-foreground',
           }
         : {
             title: 'Not verified',
             description:
               'The blockchain service responded but did not confirm this product as authentic.',
             icon: ShieldX,
-            wrapper: 'border-red-200 bg-red-50',
-            iconWrapper: 'bg-red-100 text-red-700',
-            titleClass: 'text-red-900',
-            textClass: 'text-red-800',
+            wrapper: 'border-danger/30 bg-danger/[0.07]',
+            iconWrapper: 'bg-danger/15 text-danger ring-1 ring-inset ring-danger/25',
+            titleClass: 'text-foreground',
+            textClass: 'text-muted-foreground',
           };
 
   const Icon = presentation.icon;
 
   return (
     <div className="space-y-6">
-      <div className={`rounded-xl border p-5 sm:p-6 ${presentation.wrapper}`}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${presentation.iconWrapper}`}
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className={cn('rounded-2xl border p-5 shadow-soft sm:p-6', presentation.wrapper)}
+      >
+        <div
+          className={cn(
+            'flex flex-col gap-4 sm:flex-row sm:items-start',
+            !isVerified && !reduce && 'animate-shake'
+          )}
+        >
+          <span
+            className={cn(
+              'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full',
+              presentation.iconWrapper
+            )}
           >
-            <Icon className="h-7 w-7" />
-          </div>
+            {isVerified && (
+              <motion.span
+                aria-hidden="true"
+                initial={reduce ? false : { scale: 0.8, opacity: 0.55 }}
+                animate={reduce ? undefined : { scale: 1.9, opacity: 0 }}
+                transition={{ duration: 1.1, ease: 'easeOut' }}
+                className="absolute inset-0 rounded-full border border-success/40"
+              />
+            )}
+            <motion.span
+              initial={reduce ? false : { scale: 0.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{
+                type: 'spring',
+                stiffness: 380,
+                damping: 20,
+                delay: 0.08,
+              }}
+              className="relative flex items-center justify-center"
+            >
+              <Icon className="h-7 w-7" aria-hidden="true" />
+            </motion.span>
+          </span>
+
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className={`text-xl font-bold ${presentation.titleClass}`}>
+              <h2 className={cn('text-xl font-bold', presentation.titleClass)}>
                 {presentation.title}
               </h2>
               <StatusBadge
                 label={isVerified ? 'On-chain confirmation received' : 'Not verified'}
-                tone={isVerified ? 'success' : result.authenticityStatus === 'unavailable' ? 'warning' : 'danger'}
+                tone={
+                  isVerified
+                    ? 'success'
+                    : result.authenticityStatus === 'unavailable'
+                      ? 'warning'
+                      : 'danger'
+                }
               />
             </div>
-            <p className={`mt-1 text-sm ${presentation.textClass}`}>
+            <p className={cn('mt-1 text-sm', presentation.textClass)}>
               {presentation.description}
             </p>
             <p className="mt-2 text-sm font-medium">{result.message}</p>
-            <p className="mt-2 text-xs opacity-80">
+            <p className="mt-2 text-xs text-muted-foreground">
               Product ID: <span className="font-mono">{result.productId}</span>
               {result.verificationTimestamp
                 ? ` · Checked ${formatDateTime(result.verificationTimestamp)}`
@@ -120,7 +165,7 @@ export default function VerificationResultCard({ result }: VerificationResultCar
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {result.detailsAreDemo && (
         <DemoDataBanner
@@ -142,8 +187,13 @@ export default function VerificationResultCard({ result }: VerificationResultCar
               label="Transaction hash"
               value={
                 result.blockchainReference.txHash ? (
-                  <span className="font-mono text-xs">
+                  <span className="inline-flex items-center gap-1 font-mono text-xs">
                     {shortHash(result.blockchainReference.txHash, 14, 10)}
+                    <CopyButton
+                      value={result.blockchainReference.txHash}
+                      label="Copy verification transaction hash"
+                      className="h-6 w-6 shrink-0 text-muted-foreground"
+                    />
                   </span>
                 ) : (
                   'Not provided'

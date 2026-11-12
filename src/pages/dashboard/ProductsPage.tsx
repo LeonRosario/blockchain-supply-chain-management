@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui';
-import { DemoDataBanner } from '@/components/common';
+import { Package, Plus } from 'lucide-react';
+import { Button, useToast } from '@/components/ui';
+import { DemoDataBanner, StatusBadge } from '@/components/common';
+import { FadeIn } from '@/components/motion';
 import { ProductTable } from '@/components/dashboard';
 import { ProductDetailsModal } from '@/components/dashboard';
 import { DeleteConfirmationModal } from '@/components/dashboard';
@@ -12,6 +13,7 @@ import { mockProducts } from '@/data/mockProducts';
 
 export default function ProductsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
@@ -110,11 +112,12 @@ export default function ProductsPage() {
     setIsDeleting(true);
     try {
       await productService.delete(productToDelete.id);
+      toast.success('Product deleted', `${productToDelete.name} was removed from the catalog.`);
       // Refresh the list
       fetchProducts();
     } catch (err) {
       console.error('Failed to delete product:', err);
-      alert('Failed to delete product. Please try again.');
+      toast.error('Delete failed', 'The product could not be deleted. Please try again.');
     } finally {
       setIsDeleting(false);
       setIsDeleteOpen(false);
@@ -136,18 +139,33 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="mt-1 text-muted-foreground">
-            Manage and track all registered products in the supply chain.
-          </p>
+      <FadeIn inView={false}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <Package className="h-3.5 w-3.5 text-primary" />
+              Catalog
+            </div>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Products</h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              Manage and track every registered product in the supply chain.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {!isLoading && (
+              <StatusBadge
+                label={isDemo ? 'Sample data in use' : 'Live API data'}
+                tone={isDemo ? 'warning' : 'success'}
+                dot
+              />
+            )}
+            <Button onClick={() => navigate('/dashboard/products/add')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add product
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => navigate('/dashboard/products/add')}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Product
-        </Button>
-      </div>
+      </FadeIn>
 
       {isDemo && (
         <DemoDataBanner
@@ -157,19 +175,21 @@ export default function ProductsPage() {
       )}
 
       {/* Product Table */}
-      <ProductTable
-        products={products}
-        onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onDownloadQR={handleDownloadQR}
-        isLoading={isLoading}
-        totalCount={totalCount}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-      />
+      <FadeIn delay={0.05}>
+        <ProductTable
+          products={products}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onDownloadQR={handleDownloadQR}
+          isLoading={isLoading}
+          totalCount={totalCount}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      </FadeIn>
 
       {/* Product Details Modal */}
       <ProductDetailsModal

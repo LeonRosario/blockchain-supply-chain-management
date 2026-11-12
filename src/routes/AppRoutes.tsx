@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Guards
@@ -5,43 +6,58 @@ import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
 import RoleRoute from './RoleRoute';
 
-// Layouts
+// Layouts stay in the main bundle so the shell never flashes during
+// route-chunk loading.
 import MainLayout from '@/layouts/MainLayout';
 import DashboardLayout from '@/layouts/DashboardLayout';
 
 // ── Public pages ──────────────────────────────────────────────────────────────
-import LandingPage from '@/pages/landing/LandingPage';
-import LoginPage from '@/pages/auth/LoginPage';
-import RegisterPage from '@/pages/auth/RegisterPage';
-import PublicVerificationPage from '@/pages/verification/PublicVerificationPage';
-import NotFoundPage from '@/pages/NotFoundPage';
+const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
+const PublicVerificationPage = lazy(
+  () => import('@/pages/verification/PublicVerificationPage')
+);
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // ── Dashboard / core pages ────────────────────────────────────────────────────
-import DashboardOverview from '@/pages/dashboard/DashboardOverview';
-import ProductsPage from '@/pages/dashboard/ProductsPage';
-import AddProductPage from '@/pages/dashboard/AddProductPage';
-import EditProductPage from '@/pages/dashboard/EditProductPage';
+const DashboardOverview = lazy(() => import('@/pages/dashboard/DashboardOverview'));
+const ProductsPage = lazy(() => import('@/pages/dashboard/ProductsPage'));
+const AddProductPage = lazy(() => import('@/pages/dashboard/AddProductPage'));
+const EditProductPage = lazy(() => import('@/pages/dashboard/EditProductPage'));
 
 // ── Phase 3 modules ───────────────────────────────────────────────────────────
-import ShipmentsPage from '@/pages/shipments/ShipmentsPage';
-import CreateShipmentPage from '@/pages/shipments/CreateShipmentPage';
-import ShipmentDetailsPage from '@/pages/shipments/ShipmentDetailsPage';
-import ShipmentHistoryPage from '@/pages/shipments/ShipmentHistoryPage';
-import InventoryPage from '@/pages/inventory/InventoryPage';
-import WarehousesPage from '@/pages/warehouses/WarehousesPage';
-import WarehouseDetailsPage from '@/pages/warehouses/WarehouseDetailsPage';
-import DistributorsPage from '@/pages/distributors/DistributorsPage';
-import OwnershipTransfersPage from '@/pages/ownership/OwnershipTransfersPage';
+const ShipmentsPage = lazy(() => import('@/pages/shipments/ShipmentsPage'));
+const CreateShipmentPage = lazy(() => import('@/pages/shipments/CreateShipmentPage'));
+const ShipmentDetailsPage = lazy(() => import('@/pages/shipments/ShipmentDetailsPage'));
+const ShipmentHistoryPage = lazy(() => import('@/pages/shipments/ShipmentHistoryPage'));
+const InventoryPage = lazy(() => import('@/pages/inventory/InventoryPage'));
+const WarehousesPage = lazy(() => import('@/pages/warehouses/WarehousesPage'));
+const WarehouseDetailsPage = lazy(() => import('@/pages/warehouses/WarehouseDetailsPage'));
+const DistributorsPage = lazy(() => import('@/pages/distributors/DistributorsPage'));
+const OwnershipTransfersPage = lazy(
+  () => import('@/pages/ownership/OwnershipTransfersPage')
+);
 
 // ── Phase 4 modules ───────────────────────────────────────────────────────────
-import BlockchainDashboardPage from '@/pages/blockchain/BlockchainDashboardPage';
-import BlockchainTransactionsPage from '@/pages/blockchain/BlockchainTransactionsPage';
-import BlockchainTransactionDetailsPage from '@/pages/blockchain/BlockchainTransactionDetailsPage';
-import BlockchainVerificationPage from '@/pages/blockchain/BlockchainVerificationPage';
-import CustomerProductHistoryPage from '@/pages/customer/CustomerProductHistoryPage';
-import AnalyticsPage from '@/pages/analytics/AnalyticsPage';
-import UserManagementPage from '@/pages/users/UserManagementPage';
-import SettingsPage from '@/pages/settings/SettingsPage';
+const BlockchainDashboardPage = lazy(
+  () => import('@/pages/blockchain/BlockchainDashboardPage')
+);
+const BlockchainTransactionsPage = lazy(
+  () => import('@/pages/blockchain/BlockchainTransactionsPage')
+);
+const BlockchainTransactionDetailsPage = lazy(
+  () => import('@/pages/blockchain/BlockchainTransactionDetailsPage')
+);
+const BlockchainVerificationPage = lazy(
+  () => import('@/pages/blockchain/BlockchainVerificationPage')
+);
+const CustomerProductHistoryPage = lazy(
+  () => import('@/pages/customer/CustomerProductHistoryPage')
+);
+const AnalyticsPage = lazy(() => import('@/pages/analytics/AnalyticsPage'));
+const UserManagementPage = lazy(() => import('@/pages/users/UserManagementPage'));
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 
 // Roles that can access operational supply-chain modules.
 const STAFF_ROLES = [
@@ -82,9 +98,7 @@ export default function AppRoutes() {
           <Route path="/customer/history" element={<CustomerProductHistoryPage />} />
 
           {/* Products */}
-          <Route
-            element={<RoleRoute allowedRoles={[...STAFF_ROLES]} />}
-          >
+          <Route element={<RoleRoute allowedRoles={[...STAFF_ROLES]} />}>
             <Route path="/dashboard/products" element={<ProductsPage />} />
             <Route path="/dashboard/products/add" element={<AddProductPage />} />
             <Route
@@ -113,9 +127,7 @@ export default function AppRoutes() {
           </Route>
 
           {/* Blockchain ledger — supply-chain actors only */}
-          <Route
-            element={<RoleRoute allowedRoles={[...BLOCKCHAIN_ROLES]} />}
-          >
+          <Route element={<RoleRoute allowedRoles={[...BLOCKCHAIN_ROLES]} />}>
             <Route path="/blockchain" element={<BlockchainDashboardPage />} />
             <Route
               path="/blockchain/transactions"

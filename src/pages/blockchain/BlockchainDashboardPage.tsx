@@ -351,7 +351,12 @@ export default function BlockchainDashboardPage() {
                           {transaction.productName ?? transaction.productId ?? '—'}
                         </td>
                         <td className="px-3 py-3">
-                          <StatusBadge label={meta.label} tone={meta.tone} dot />
+                          <StatusBadge
+                            label={meta.label}
+                            tone={meta.tone}
+                            dot
+                            pulse={transaction.status === 'pending'}
+                          />
                         </td>
                         <td className="px-3 py-3 text-muted-foreground">
                           {formatDateTime(transaction.timestamp)}
@@ -379,7 +384,7 @@ export default function BlockchainDashboardPage() {
       <Card>
         <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
+            <div className="rounded-lg bg-info/10 p-3 text-info">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>

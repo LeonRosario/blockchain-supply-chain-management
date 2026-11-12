@@ -26,3 +26,14 @@ export {
   AlertDescription,
 } from './alert';
 export { ToastProvider, useToast } from './toast';
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+} from './dropdown-menu';

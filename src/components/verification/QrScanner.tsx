@@ -20,6 +20,7 @@ export default function QrScanner({ isOpen, onClose, onScan }: QrScannerProps) {
   const onScanRef = useRef(onScan);
 
   const [isStarting, setIsStarting] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function QrScanner({ isOpen, onClose, onScan }: QrScannerProps) {
     resultRef.current = false;
     setScanError(null);
     setIsStarting(true);
+    setIsCameraActive(false);
 
     const stopCamera = () => {
       if (frameRef.current !== null) {
@@ -65,6 +67,7 @@ export default function QrScanner({ isOpen, onClose, onScan }: QrScannerProps) {
         video.srcObject = stream;
         await video.play();
         if (!active) return;
+        setIsCameraActive(true);
         setIsStarting(false);
 
         const scanFrame = () => {
@@ -98,6 +101,7 @@ export default function QrScanner({ isOpen, onClose, onScan }: QrScannerProps) {
         frameRef.current = requestAnimationFrame(scanFrame);
       } catch (cameraError) {
         if (!active) return;
+        setIsCameraActive(false);
         setIsStarting(false);
         const name =
           cameraError && typeof cameraError === 'object' && 'name' in cameraError
@@ -167,7 +171,7 @@ export default function QrScanner({ isOpen, onClose, onScan }: QrScannerProps) {
       onClose={onClose}
     >
       <div className="space-y-4">
-        <div className="relative overflow-hidden rounded-lg border bg-black">
+        <div className="relative overflow-hidden rounded-xl border border-border/60 bg-slate-950">
           <video
             ref={videoRef}
             playsInline
@@ -175,20 +179,61 @@ export default function QrScanner({ isOpen, onClose, onScan }: QrScannerProps) {
             className="aspect-video w-full object-cover"
             aria-label="Camera preview for QR scanning"
           />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-40 w-40 rounded-lg border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_35%,rgba(2,6,23,0.55)_100%)]"
+          />
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          >
+            <div className="relative h-40 w-40">
+              <span className="absolute inset-0 rounded-lg shadow-[0_0_0_9999px_rgba(2,6,23,0.45)]" />
+              <span className="absolute left-0 top-0 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-teal-300/90" />
+              <span className="absolute right-0 top-0 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-teal-300/90" />
+              <span className="absolute bottom-0 left-0 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-teal-300/90" />
+              <span className="absolute bottom-0 right-0 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-teal-300/90" />
+              <span className="absolute inset-x-2 top-0 h-0.5 animate-scan rounded-full bg-gradient-to-r from-transparent via-teal-300 to-transparent shadow-[0_0_18px_rgba(45,212,191,0.9)]" />
+            </div>
           </div>
+
+          {!isStarting && !isCameraActive && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/80 px-6 text-center text-white">
+              <Camera className="h-7 w-7 text-white/55" aria-hidden="true" />
+              <p className="text-sm font-medium">Camera preview not available</p>
+              <p className="max-w-xs text-xs leading-relaxed text-white/55">
+                Allow camera access when prompted, or upload a QR code image
+                below.
+              </p>
+            </div>
+          )}
+
           {isStarting && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-white">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/70 text-white">
               <Loader2 className="h-6 w-6 animate-spin" />
               <p className="text-sm">Starting camera…</p>
+            </div>
+          )}
+
+          {!isStarting && isCameraActive && (
+            <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-slate-950/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/85 backdrop-blur">
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]"
+              />
+              Scanning
             </div>
           )}
         </div>
         <canvas ref={canvasRef} className="hidden" />
 
         {scanError && (
-          <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p
+            role="alert"
+            className="rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning"
+          >
             {scanError}
           </p>
         )}

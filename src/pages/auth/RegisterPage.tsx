@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, ShieldCheck, User, Mail, Lock, Briefcase } from 'lucide-react';
+import { Eye, EyeOff, Loader2, User, Mail, Lock, Briefcase } from 'lucide-react';
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
 import { ErrorMessage } from '@/components/common';
+import AuthLayout from '@/layouts/AuthLayout';
 import { useAuth } from '@/hooks';
 import { cn } from '@/utils';
 import { USER_ROLES } from '@/types';
@@ -149,21 +150,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
-        {/* Brand */}
-        <div className="mb-8 flex flex-col items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-bold">SupplyChain</h1>
-          <p className="text-sm text-muted-foreground">Blockchain-Powered Supply Chain</p>
-        </div>
-
-        <Card>
+    <AuthLayout>
+        <Card className="border-border/70 bg-card/90 shadow-card backdrop-blur-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl">Create your account</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Join the supply chain network</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Join the supply chain network.
+            </p>
           </CardHeader>
 
           <CardContent>
@@ -339,8 +332,7 @@ export default function RegisterPage() {
               </Link>
             </p>
           </CardContent>
-        </Card>
-      </div>
-    </div>
+      </Card>
+    </AuthLayout>
   );
 }

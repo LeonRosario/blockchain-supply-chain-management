@@ -74,18 +74,30 @@ export default function PublicVerificationPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50">
-      <section className="border-b bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 px-4 py-12 text-white sm:py-16">
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/10">
-            <ShieldCheck className="h-7 w-7 text-emerald-300" />
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
+      <section className="relative overflow-hidden border-b border-white/10 bg-[hsl(222_47%_7%)] px-4 py-12 text-white sm:py-16">
+        <div
+          aria-hidden="true"
+          className="surface-grid pointer-events-none absolute inset-0 opacity-20"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-20 top-0 h-64 w-64 rounded-full bg-primary/20 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-16 bottom-0 h-56 w-56 rounded-full bg-teal-400/10 blur-3xl"
+        />
+        <div className="relative mx-auto max-w-4xl text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] text-teal-300">
+            <ShieldCheck className="h-7 w-7" />
           </div>
           <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
             Verify a product
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-300 sm:text-base">
-            Enter a product ID or scan its QR code to check authenticity against the
-            blockchain verification service. No account is required.
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/65 sm:text-base">
+            Enter a product ID or scan its QR code to check authenticity against
+            the blockchain verification service. No account is required.
           </p>
         </div>
       </section>
@@ -140,9 +152,15 @@ export default function PublicVerificationPage() {
 
         <div className="mt-6 space-y-6">
           {isVerifying && (
-            <Card>
+            <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
               <CardContent className="flex flex-col items-center justify-center gap-3 p-10 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-2xl border border-primary/30 animate-pulse-ring"
+                  />
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
                 <p className="text-sm font-medium">Checking the blockchain service…</p>
                 <p className="text-xs text-muted-foreground">
                   No result is shown until the service responds.

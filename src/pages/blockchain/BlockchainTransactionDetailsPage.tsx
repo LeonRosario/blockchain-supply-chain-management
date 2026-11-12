@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   ArrowLeft,
-  Copy,
+  ArrowRight,
   ExternalLink,
   Hash,
   Link2,
@@ -15,17 +15,20 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Skeleton,
 } from '@/components/ui';
-import { useToast } from '@/components/ui';
 import {
+  CopyButton,
   DemoDataBanner,
   ErrorMessage,
   InfoField,
   StatusBadge,
 } from '@/components/common';
+import { DrawLine, FadeIn } from '@/components/motion';
 import blockchainService from '@/services/blockchain.service';
 import type { BlockchainTransaction } from '@/types';
 import {
+  cn,
   formatDateTime,
   getTransactionStatusMeta,
   titleCase,
@@ -35,7 +38,6 @@ import { errorMessage } from '@/services/serviceHelpers';
 export default function BlockchainTransactionDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const toast = useToast();
   const [transaction, setTransaction] = useState<BlockchainTransaction | null>(null);
   const [source, setSource] = useState<'api' | 'demo'>('demo');
   const [isLoading, setIsLoading] = useState(true);
@@ -64,23 +66,21 @@ export default function BlockchainTransactionDetailsPage() {
     load();
   }, [load]);
 
-  const handleCopy = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      toast.success('Copied to clipboard');
-    } catch {
-      toast.error('Could not copy value');
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-8 w-1/3 rounded bg-muted" />
-        <div className="h-56 rounded-xl bg-muted" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading transaction">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-64 max-w-full" />
+          </div>
+        </div>
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-44 w-full rounded-2xl" />
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="h-64 rounded-xl bg-muted" />
-          <div className="h-64 rounded-xl bg-muted" />
+          <Skeleton className="h-64 rounded-2xl" />
+          <Skeleton className="h-64 rounded-2xl" />
         </div>
       </div>
     );
@@ -146,7 +146,12 @@ export default function BlockchainTransactionDetailsPage() {
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 {titleCase(transaction.transactionType)}
               </h1>
-              <StatusBadge label={meta.label} tone={meta.tone} dot />
+              <StatusBadge
+                label={meta.label}
+                tone={meta.tone}
+                dot
+                pulse={transaction.status === 'pending'}
+              />
               {isDemo && <StatusBadge label="Demo data" tone="warning" />}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -154,11 +159,14 @@ export default function BlockchainTransactionDetailsPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => handleCopy(transaction.txHash)}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy hash
-          </Button>
+        <div className="flex flex-wrap gap-2">
+          <CopyButton
+            value={transaction.txHash}
+            label="Copy transaction hash"
+            text="Copy hash"
+            showText
+            variant="outline"
+          />
           <Button variant="outline" onClick={load}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
@@ -173,6 +181,47 @@ export default function BlockchainTransactionDetailsPage() {
         />
       )}
 
+      <FadeIn inView={false} delay={0.04}>
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Link2 className="h-4 w-4" />
+              </span>
+              Record path
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Addresses and entity exactly as reported by this record. A path
+              reference does not prove product authenticity.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-[1fr_2.5rem_1fr_2.5rem_1fr] sm:items-center">
+              <PathNode
+                label="From address"
+                value={transaction.fromAddress}
+                mono
+                copy
+              />
+              <FlowConnector />
+              <PathNode
+                label={titleCase(transaction.entityType)}
+                value={transaction.entityId}
+              />
+              <FlowConnector />
+              <PathNode
+                label="To address"
+                value={transaction.toAddress ?? 'Not provided'}
+                mono
+                muted={!transaction.toAddress}
+                copy={Boolean(transaction.toAddress)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </FadeIn>
+
+      <FadeIn inView={false} delay={0.08}>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -189,15 +238,11 @@ export default function BlockchainTransactionDetailsPage() {
                 </p>
                 <p className="mt-1 break-all font-mono text-sm">{transaction.txHash}</p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
+              <CopyButton
+                value={transaction.txHash}
+                label="Copy transaction hash"
                 className="h-8 w-8 shrink-0"
-                onClick={() => handleCopy(transaction.txHash)}
-                aria-label="Copy transaction hash"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+              />
             </div>
           </div>
 
@@ -238,7 +283,9 @@ export default function BlockchainTransactionDetailsPage() {
           </div>
         </CardContent>
       </Card>
+      </FadeIn>
 
+      <FadeIn inView={false} delay={0.12}>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -297,6 +344,63 @@ export default function BlockchainTransactionDetailsPage() {
             </p>
           </CardContent>
         </Card>
+      </div>
+      </FadeIn>
+    </div>
+  );
+}
+
+function FlowConnector() {
+  return (
+    <div className="flex items-center justify-center" aria-hidden="true">
+      <DrawLine orientation="horizontal" className="hidden w-10 sm:block" />
+      <ArrowRight className="h-4 w-4 text-muted-foreground sm:hidden" />
+    </div>
+  );
+}
+
+function PathNode({
+  label,
+  value,
+  mono = false,
+  muted = false,
+  copy = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  muted?: boolean;
+  copy?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'min-w-0 rounded-xl border p-3',
+        muted
+          ? 'border-dashed border-border bg-muted/20'
+          : 'border-border/70 bg-muted/30'
+      )}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </p>
+      <div className="mt-1 flex items-start gap-1">
+        <p
+          className={cn(
+            'min-w-0 flex-1 break-all text-sm',
+            mono && 'font-mono text-xs',
+            muted && 'text-muted-foreground'
+          )}
+        >
+          {value}
+        </p>
+        {copy && (
+          <CopyButton
+            value={value}
+            label={`Copy ${label.toLowerCase()}`}
+            className="h-6 w-6 shrink-0 text-muted-foreground"
+          />
+        )}
       </div>
     </div>
   );

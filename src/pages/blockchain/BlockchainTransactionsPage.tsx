@@ -17,6 +17,7 @@ import {
 } from '@/components/ui';
 import { useToast } from '@/components/ui';
 import {
+  CopyButton,
   DemoDataBanner,
   EmptyState,
   ErrorMessage,
@@ -25,6 +26,7 @@ import {
   StatusBadge,
   TableSkeleton,
 } from '@/components/common';
+import { FadeIn } from '@/components/motion';
 import blockchainService from '@/services/blockchain.service';
 import type {
   BlockchainTransaction,
@@ -33,6 +35,7 @@ import type {
   TransactionType,
 } from '@/types';
 import {
+  cn,
   formatDateTime,
   getTransactionStatusMeta,
   shortHash,
@@ -166,24 +169,42 @@ export default function BlockchainTransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Blockchain Transactions</h1>
-          <p className="mt-1 text-muted-foreground">
-            Review transaction records returned by the blockchain service.
-          </p>
+      <FadeIn inView={false}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <Link2 className="h-3.5 w-3.5 text-primary" />
+              Trust &amp; insight
+            </div>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+              Blockchain transactions
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              Review ledger records returned by the blockchain service. Only a
+              live verification response can confirm authenticity.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {!isLoading && (
+              <StatusBadge
+                label={source === 'demo' ? 'Demo records' : 'Live API data'}
+                tone={source === 'demo' ? 'warning' : 'success'}
+                dot
+              />
+            )}
+            <Button variant="outline" onClick={exportCsv}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button variant="outline" onClick={load} disabled={isLoading}>
+              <RefreshCw
+                className={cn('mr-2 h-4 w-4', isLoading && 'animate-spin')}
+              />
+              Refresh
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCsv}>
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button variant="outline" onClick={load} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-      </div>
+      </FadeIn>
 
       {source === 'demo' && (
         <DemoDataBanner
@@ -192,9 +213,17 @@ export default function BlockchainTransactionsPage() {
         />
       )}
 
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>Transaction ledger</CardTitle>
+      <FadeIn delay={0.05}>
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-col gap-3 border-b border-border/60 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-lg">Transaction ledger</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {isLoading
+                ? 'Loading ledger records…'
+                : `${total.toLocaleString()} record${total === 1 ? '' : 's'} matching the current view`}
+            </p>
+          </div>
           <Button variant="ghost" size="sm" onClick={resetFilters}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset filters
@@ -217,7 +246,7 @@ export default function BlockchainTransactionsPage() {
                 setType(event.target.value as TransactionType | 'all');
                 setPage(1);
               }}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
+              className="h-10 rounded-lg border border-input bg-background/70 px-3 text-sm shadow-sm transition-colors focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
               aria-label="Filter by transaction type"
             >
               <option value="all">All transaction types</option>
@@ -233,7 +262,7 @@ export default function BlockchainTransactionsPage() {
                 setStatus(event.target.value as TransactionStatus | 'all');
                 setPage(1);
               }}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
+              className="h-10 rounded-lg border border-input bg-background/70 px-3 text-sm shadow-sm transition-colors focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
               aria-label="Filter by transaction status"
             >
               <option value="all">All statuses</option>
@@ -272,28 +301,93 @@ export default function BlockchainTransactionsPage() {
               }
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full min-w-[900px] text-sm">
                 <thead>
-                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-3 font-medium">Transaction</th>
-                    <th className="px-3 py-3 font-medium">Type</th>
-                    <th className="px-3 py-3 font-medium">Entity / product</th>
-                    <th className="px-3 py-3 font-medium">Block</th>
-                    <th className="px-3 py-3 font-medium">Status</th>
-                    <th className="px-3 py-3 font-medium">Timestamp</th>
-                    <th className="px-3 py-3 text-right font-medium">Actions</th>
+                  <tr className="border-b border-border/70 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th scope="col" className="w-10 px-2 py-3">
+                      <span className="sr-only">Ledger order</span>
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-semibold">
+                      Transaction
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-semibold">
+                      Type
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-semibold">
+                      Entity / product
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-semibold">
+                      Block
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-semibold">
+                      Status
+                    </th>
+                    <th scope="col" className="px-3 py-3 font-semibold">
+                      Timestamp
+                    </th>
+                    <th scope="col" className="px-3 py-3 text-right font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {transactions.map((transaction) => {
+                <tbody className="divide-y divide-border/50">
+                  {transactions.map((transaction, index) => {
                     const meta = getTransactionStatusMeta(transaction.status);
+                    const isLast = index === transactions.length - 1;
                     return (
-                      <tr key={transaction.id} className="hover:bg-muted/40">
+                      <tr
+                        key={transaction.id}
+                        className="group animate-in fade-in-0 slide-in-from-bottom-1 duration-300 hover:bg-primary/[0.035]"
+                        style={{
+                          animationDelay: `${Math.min(index, 8) * 25}ms`,
+                          animationFillMode: 'both',
+                        }}
+                      >
+                        {/* Decorative ledger rail — order of returned records only. */}
+                        <td className="relative w-10 px-2 py-3 align-middle">
+                          {index > 0 && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-1/2 top-0 h-1/2 w-px -translate-x-1/2 bg-border/70"
+                            />
+                          )}
+                          {!isLast && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-1/2 top-1/2 h-1/2 w-px -translate-x-1/2 bg-border/70"
+                            />
+                          )}
+                          <span
+                            className={cn(
+                              'relative z-10 mx-auto flex h-6 w-6 items-center justify-center rounded-full border bg-card',
+                              meta.tone === 'success'
+                                ? 'border-success/35 text-success'
+                                : meta.tone === 'warning'
+                                  ? 'border-warning/35 text-warning'
+                                  : meta.tone === 'danger'
+                                    ? 'border-danger/35 text-danger'
+                                    : 'border-border text-muted-foreground'
+                            )}
+                          >
+                            <Link2 className="h-3 w-3" aria-hidden="true" />
+                          </span>
+                        </td>
+
                         <td className="px-3 py-3">
-                          <p className="font-mono text-xs" title={transaction.txHash}>
-                            {shortHash(transaction.txHash, 12, 8)}
-                          </p>
+                          <div className="flex items-center gap-1">
+                            <p
+                              className="font-mono text-xs"
+                              title={transaction.txHash}
+                            >
+                              {shortHash(transaction.txHash, 12, 8)}
+                            </p>
+                            <CopyButton
+                              value={transaction.txHash}
+                              label={`Copy hash for transaction ${transaction.id}`}
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                            />
+                          </div>
                           <div className="mt-1 flex flex-wrap items-center gap-1">
                             {transaction.isDemo ? (
                               <StatusBadge label="Demo data" tone="warning" />
@@ -314,13 +408,18 @@ export default function BlockchainTransactionsPage() {
                             {transaction.entityType} · {transaction.entityId}
                           </p>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 tabular-nums">
                           {transaction.isDemo || transaction.blockNumber === 0
                             ? '—'
                             : transaction.blockNumber.toLocaleString()}
                         </td>
                         <td className="px-3 py-3">
-                          <StatusBadge label={meta.label} tone={meta.tone} dot />
+                          <StatusBadge
+                            label={meta.label}
+                            tone={meta.tone}
+                            dot
+                            pulse={transaction.status === 'pending'}
+                          />
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">
                           {formatDateTime(transaction.timestamp)}
@@ -329,7 +428,7 @@ export default function BlockchainTransactionsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 opacity-70 transition-opacity group-hover:opacity-100"
                             onClick={() =>
                               navigate(`/blockchain/transactions/${transaction.id}`)
                             }
@@ -372,6 +471,7 @@ export default function BlockchainTransactionsPage() {
           </div>
         </CardContent>
       </Card>
+      </FadeIn>
     </div>
   );
 }

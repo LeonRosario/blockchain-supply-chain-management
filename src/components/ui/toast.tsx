@@ -6,7 +6,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { CheckCircle2, Info, X, XCircle, AlertTriangle } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  X,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/utils';
 
 type ToastVariant = 'default' | 'success' | 'error' | 'warning';
@@ -32,23 +40,43 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
-const variantStyles: Record<ToastVariant, string> = {
-  default: 'border-border bg-card text-card-foreground',
-  success: 'border-green-200 bg-green-50 text-green-900',
-  error: 'border-red-200 bg-red-50 text-red-900',
-  warning: 'border-amber-200 bg-amber-50 text-amber-900',
+const variantStyles: Record<
+  ToastVariant,
+  { card: string; icon: string; bar: string }
+> = {
+  default: {
+    card: 'border-border/80',
+    icon: 'bg-info/10 text-info ring-1 ring-inset ring-info/20',
+    bar: 'bg-info/50',
+  },
+  success: {
+    card: 'border-success/30',
+    icon: 'bg-success/10 text-success ring-1 ring-inset ring-success/20',
+    bar: 'bg-success/50',
+  },
+  error: {
+    card: 'border-danger/30',
+    icon: 'bg-danger/10 text-danger ring-1 ring-inset ring-danger/20',
+    bar: 'bg-danger/50',
+  },
+  warning: {
+    card: 'border-warning/30',
+    icon: 'bg-warning/10 text-warning ring-1 ring-inset ring-warning/20',
+    bar: 'bg-warning/50',
+  },
 };
 
-const variantIcons: Record<ToastVariant, ReactNode> = {
-  default: <Info className="h-5 w-5 text-blue-600" />,
-  success: <CheckCircle2 className="h-5 w-5 text-green-600" />,
-  error: <XCircle className="h-5 w-5 text-red-600" />,
-  warning: <AlertTriangle className="h-5 w-5 text-amber-600" />,
+const variantIcons: Record<ToastVariant, LucideIcon> = {
+  default: Info,
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertTriangle,
 };
 
 let toastCounter = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const reduce = useReducedMotion();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const dismiss = useCallback((id: string) => {
@@ -99,36 +127,78 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-full max-w-sm flex-col gap-2"
+        className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex flex-col items-end gap-2 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm"
       >
-        {toasts.map((item) => (
-          <div
-            key={item.id}
-            role="status"
-            className={cn(
-              'pointer-events-auto flex items-start gap-3 rounded-lg border p-4 shadow-lg',
-              variantStyles[item.variant ?? 'default']
-            )}
-          >
-            <div className="mt-0.5 shrink-0">
-              {variantIcons[item.variant ?? 'default']}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">{item.title}</p>
-              {item.description && (
-                <p className="mt-1 text-sm opacity-80">{item.description}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => dismiss(item.id)}
-              className="shrink-0 rounded p-1 opacity-60 transition-opacity hover:opacity-100"
-              aria-label="Dismiss notification"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ))}
+        <AnimatePresence initial={false} mode="popLayout">
+          {toasts.map((item) => {
+            const variant = item.variant ?? 'default';
+            const styles = variantStyles[variant];
+            const Icon = variantIcons[variant];
+            const duration = item.duration ?? 0;
+
+            return (
+              <motion.div
+                key={item.id}
+                layout={!reduce}
+                initial={reduce ? false : { opacity: 0, y: 16, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={
+                  reduce
+                    ? undefined
+                    : { opacity: 0, x: 24, scale: 0.97 }
+                }
+                transition={{
+                  duration: 0.24,
+                  ease: [0.22, 1, 0.36, 1],
+                  layout: { duration: 0.2 },
+                }}
+                role="status"
+                className={cn(
+                  'pointer-events-auto relative w-full overflow-hidden rounded-xl border bg-card/95 text-card-foreground shadow-lg backdrop-blur-md',
+                  styles.card
+                )}
+              >
+                <div className="flex items-start gap-3 p-4">
+                  <span
+                    className={cn(
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+                      styles.icon
+                    )}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <p className="text-sm font-semibold">{item.title}</p>
+                    {item.description && (
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => dismiss(item.id)}
+                    className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Dismiss notification"
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+
+                {duration > 0 && (
+                  <motion.span
+                    aria-hidden="true"
+                    initial={reduce ? false : { scaleX: 1 }}
+                    animate={reduce ? undefined : { scaleX: 0 }}
+                    transition={{ duration: duration / 1000, ease: 'linear' }}
+                    style={{ transformOrigin: 'left' }}
+                    className={cn('absolute inset-x-0 bottom-0 h-0.5', styles.bar)}
+                  />
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );
