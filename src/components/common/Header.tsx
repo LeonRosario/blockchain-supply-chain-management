@@ -78,7 +78,7 @@ export default function Header({ onMenuClick, pageTitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/dashboard/settings')}
+          onClick={() => navigate('/settings')}
           aria-label="Profile settings"
         >
           <UserIcon className="h-5 w-5" />
