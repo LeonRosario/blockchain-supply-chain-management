@@ -1,10 +1,19 @@
+import { useEffect } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
+import { ToastProvider } from '@/components/ui';
+import { initializeAppPreferences } from '@/services/settings.service';
 import AppRoutes from '@/routes/AppRoutes';
 
 function App() {
+  useEffect(() => {
+    initializeAppPreferences();
+  }, []);
+
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
     </AuthProvider>
   );
 }
