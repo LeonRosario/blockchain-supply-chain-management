@@ -27,8 +27,8 @@ export default function StatsCard({
   return (
     <div
       className={cn(
-        'rounded-xl p-6 transition-all hover:shadow-md cursor-pointer',
-        onClick ? 'hover:bg-gray-50' : '',
+        'rounded-xl p-6 transition-all hover:shadow-md',
+        onClick ? 'cursor-pointer hover:bg-gray-50' : '',
         'border border-gray-100'
       )}
       onClick={onClick}

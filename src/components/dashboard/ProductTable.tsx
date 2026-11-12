@@ -124,8 +124,10 @@ export default function ProductTable({
     });
   };
 
-  const SortIcon = ({ key }: { key: SortableKey }) => {
-    if (sortConfig?.key !== key) return <ChevronDown className="w-4 h-4 text-muted-foreground" />;
+  const SortIcon = ({ columnKey }: { columnKey: SortableKey }) => {
+    if (sortConfig?.key !== columnKey) {
+      return <ChevronDown className="w-4 h-4 text-muted-foreground" />;
+    }
     return sortConfig.direction === 'asc' ? (
       <ChevronUp className="w-4 h-4 text-primary" />
     ) : (
@@ -226,7 +228,9 @@ export default function ProductTable({
                   >
                     <div className="flex items-center gap-1">
                       {col.label}
-                      {sortableKeys.includes(col.key as SortableKey) && <SortIcon key={col.key as SortableKey} />}
+                      {sortableKeys.includes(col.key as SortableKey) && (
+                        <SortIcon columnKey={col.key as SortableKey} />
+                      )}
                     </div>
                   </th>
                 ))}

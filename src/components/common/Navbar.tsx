@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Package2 } from 'lucide-react';
+import { Package2, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/hooks';
 
@@ -23,13 +23,24 @@ export default function Navbar() {
           <Link to="/" className="text-muted-foreground transition-colors hover:text-foreground">
             Home
           </Link>
-          <Link to="/auth/login" className="text-muted-foreground transition-colors hover:text-foreground">
-            Sign In
+          <Link
+            to="/verify"
+            className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <QrCode className="h-4 w-4" />
+            Verify Product
           </Link>
         </nav>
 
         {/* CTA */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="md:hidden">
+            <Link to="/verify">
+              <QrCode className="mr-1 h-4 w-4" />
+              Verify
+            </Link>
+          </Button>
+
           {isAuthenticated ? (
             <Button asChild size="sm">
               <Link to="/dashboard">Dashboard</Link>
@@ -49,4 +60,3 @@ export default function Navbar() {
     </header>
   );
 }
-

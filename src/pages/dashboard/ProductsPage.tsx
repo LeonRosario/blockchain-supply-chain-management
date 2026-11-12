@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { DemoDataBanner } from '@/components/common';
 import { ProductTable } from '@/components/dashboard';
 import { ProductDetailsModal } from '@/components/dashboard';
 import { DeleteConfirmationModal } from '@/components/dashboard';
@@ -13,6 +14,7 @@ export default function ProductsPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -38,39 +40,16 @@ export default function ProductsPage() {
         limit: pageSize,
       });
 
-      if (response.data && response.data.length > 0) {
+      if (response.data) {
         setProducts(response.data);
-        setTotalCount(response.total);
+        setTotalCount(response.total ?? response.data.length);
+        setIsDemo(false);
       } else {
-        // Fallback to mock data with client-side filtering/pagination
-        let filtered = [...mockProducts];
-
-        if (filters.search) {
-          const search = filters.search.toLowerCase();
-          filtered = filtered.filter(
-            (p) =>
-              p.name.toLowerCase().includes(search) ||
-              p.productId.toLowerCase().includes(search) ||
-              p.sku.toLowerCase().includes(search) ||
-              p.category.toLowerCase().includes(search) ||
-              p.manufacturer.toLowerCase().includes(search)
-          );
-        }
-
-        if (filters.category) {
-          filtered = filtered.filter((p) => p.category === filters.category);
-        }
-
-        if (filters.status) {
-          filtered = filtered.filter((p) => p.status === filters.status);
-        }
-
-        setTotalCount(filtered.length);
-        const start = (currentPage - 1) * pageSize;
-        setProducts(filtered.slice(start, start + pageSize));
+        throw new Error('Unexpected products response.');
       }
     } catch (err) {
       console.error('Failed to fetch products:', err);
+      setIsDemo(true);
       // Fallback to mock data
       let filtered = [...mockProducts];
 
@@ -169,6 +148,13 @@ export default function ProductsPage() {
           Add Product
         </Button>
       </div>
+
+      {isDemo && (
+        <DemoDataBanner
+          title="Sample product data"
+          message="The product API is unavailable, so the table below shows local demo products. Search and filters work on these sample records only. Demo products are not blockchain-verified."
+        />
+      )}
 
       {/* Product Table */}
       <ProductTable

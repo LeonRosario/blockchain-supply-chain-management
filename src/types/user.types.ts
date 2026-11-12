@@ -27,6 +27,46 @@ export interface User {
   updatedAt: string;
 }
 
+export type UserStatus = 'active' | 'inactive' | 'suspended';
+
+export interface UserRecord extends User {
+  status: UserStatus;
+  phone?: string;
+  department?: string;
+  lastLoginAt?: string;
+}
+
+export interface UserFilters {
+  search?: string;
+  role?: UserRole | 'all';
+  status?: UserStatus | 'all';
+}
+
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  phone?: string;
+  department?: string;
+}
+
+export interface NotificationPreferences {
+  emailNotifications: boolean;
+  shipmentUpdates: boolean;
+  blockchainEvents: boolean;
+  inventoryAlerts: boolean;
+  verificationAlerts: boolean;
+  marketing: boolean;
+}
+
+export interface AppPreferences {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  timezone: string;
+  compactTables: boolean;
+}
+
 export interface AuthUser extends User {
   token: string;
 }

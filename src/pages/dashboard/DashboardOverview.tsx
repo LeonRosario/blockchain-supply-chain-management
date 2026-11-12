@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Truck, CheckCircle, Clock, BarChart3 } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, BarChart3, History } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -13,6 +13,8 @@ import {
   ActivityFeed,
   ProductStatsChart,
 } from '@/components/dashboard';
+import { DemoDataBanner, StatusBadge } from '@/components/common';
+import { useAuth } from '@/hooks';
 import productService from '@/services/product.service';
 import type { ProductStats, ProductStatus } from '@/types';
 import { mockProducts, mockProductStats, mockRecentActivity, mockStatsChartData } from '@/data/mockProducts';
@@ -27,42 +29,52 @@ type ActivityItem = {
 
 export default function DashboardOverview() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canManageOperations = Boolean(user && user.role !== 'customer');
   const [stats, setStats] = useState<ProductStats>(mockProductStats);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>(mockRecentActivity);
+  const [isDemo, setIsDemo] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // Try to fetch from API, fall back to mock data
+        // Only replace the sample dashboard when both datasets come from the
+        // API. Mixing one live result with sample data would misrepresent it.
         const [statsRes, activityRes] = await Promise.allSettled([
           productService.getStats(),
           productService.getRecentActivity(10),
         ]);
 
-        if (statsRes.status === 'fulfilled' && statsRes.value.success) {
-          setStats(statsRes.value.data);
+        const statsOk = statsRes.status === 'fulfilled' && statsRes.value.success;
+        const activityOk =
+          activityRes.status === 'fulfilled' && activityRes.value.success;
+
+        if (!statsOk || !activityOk) {
+          setIsDemo(true);
+          return;
         }
 
-        if (activityRes.status === 'fulfilled' && activityRes.value.success) {
-          const activities: ActivityItem[] = activityRes.value.data.map((product) => ({
-            id: `act-${product.id}`,
-            type: (product.status === 'delivered' ? 'delivered' :
-              product.status === 'in_transit' ? 'shipped' : 'created') as ActivityItem['type'],
-            product: {
-              id: product.id,
-              productId: product.productId,
-              name: product.name,
-              status: product.status,
-            },
-            timestamp: product.updatedAt,
-            user: 'System',
-          }));
-          setRecentActivity(activities);
-        }
+        setStats(statsRes.value.data);
+        const activities: ActivityItem[] = activityRes.value.data.map((product) => ({
+          id: `act-${product.id}`,
+          type: (product.status === 'delivered' ? 'delivered' :
+            product.status === 'in_transit' ? 'shipped' : 'created') as ActivityItem['type'],
+          product: {
+            id: product.id,
+            productId: product.productId,
+            name: product.name,
+            status: product.status,
+          },
+          timestamp: product.updatedAt,
+          user: 'System',
+        }));
+        setRecentActivity(activities);
+        setIsDemo(false);
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
+        setIsDemo(true);
       } finally {
         setIsLoading(false);
       }
@@ -86,8 +98,7 @@ export default function DashboardOverview() {
       icon: Package,
       iconColor: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      trend: { value: 12, label: 'vs last month', isPositive: true },
-      onClick: () => handleViewProducts(),
+      onClick: canManageOperations ? () => handleViewProducts() : undefined,
     },
     {
       title: 'In Transit',
@@ -95,8 +106,7 @@ export default function DashboardOverview() {
       icon: Truck,
       iconColor: 'text-purple-600',
       bgColor: 'bg-purple-50',
-      trend: { value: 5, label: 'vs last week', isPositive: true },
-      onClick: () => handleViewProducts('in_transit'),
+      onClick: canManageOperations ? () => handleViewProducts('in_transit') : undefined,
     },
     {
       title: 'Delivered',
@@ -104,8 +114,7 @@ export default function DashboardOverview() {
       icon: CheckCircle,
       iconColor: 'text-green-600',
       bgColor: 'bg-green-50',
-      trend: { value: 8, label: 'vs last month', isPositive: true },
-      onClick: () => handleViewProducts('delivered'),
+      onClick: canManageOperations ? () => handleViewProducts('delivered') : undefined,
     },
     {
       title: 'Pending Shipments',
@@ -113,8 +122,7 @@ export default function DashboardOverview() {
       icon: Clock,
       iconColor: 'text-orange-600',
       bgColor: 'bg-orange-50',
-      trend: { value: -3, label: 'vs last week', isPositive: false },
-      onClick: () => handleViewProducts('active'),
+      onClick: canManageOperations ? () => handleViewProducts('active') : undefined,
     },
   ];
 
@@ -149,11 +157,20 @@ export default function DashboardOverview() {
             Monitor your supply chain products and shipments at a glance.
           </p>
         </div>
-        <Button onClick={() => navigate('/dashboard/products/add')}>
-          <Package className="w-4 h-4 mr-2" />
-          Add Product
-        </Button>
+        {canManageOperations && (
+          <Button onClick={() => navigate('/dashboard/products/add')}>
+            <Package className="w-4 h-4 mr-2" />
+            Add Product
+          </Button>
+        )}
       </div>
+
+      {isDemo && (
+        <DemoDataBanner
+          title="Sample dashboard data"
+          message="The product metrics, distribution chart, and recent activity below come from local demo records because the dashboard API did not return both datasets. They are not live supply-chain records."
+        />
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -170,6 +187,7 @@ export default function DashboardOverview() {
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
               Product Distribution
+              <StatusBadge label="Sample data" tone="warning" />
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -184,9 +202,11 @@ export default function DashboardOverview() {
               <Clock className="w-5 h-5" />
               Recent Activity
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/products')}>
-              View All
-            </Button>
+            {canManageOperations && (
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/products')}>
+                View All
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             <ActivityFeed
@@ -200,40 +220,48 @@ export default function DashboardOverview() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-lg bg-blue-100 p-3">
-                <Package className="w-6 h-6 text-blue-600" />
+      <div
+        className={`grid grid-cols-1 gap-4 ${
+          canManageOperations ? 'md:grid-cols-3' : 'md:grid-cols-2'
+        }`}
+      >
+        {canManageOperations && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="rounded-lg bg-blue-100 p-3">
+                  <Package className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Add New Product</h3>
+                  <p className="text-sm text-muted-foreground">Register a new product in the supply chain</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">Add New Product</h3>
-                <p className="text-sm text-muted-foreground">Register a new product in the supply chain</p>
-              </div>
-            </div>
-            <Button className="mt-4 w-full" onClick={() => navigate('/dashboard/products/add')}>
-              Create Product
-            </Button>
-          </CardContent>
-        </Card>
+              <Button className="mt-4 w-full" onClick={() => navigate('/dashboard/products/add')}>
+                Create Product
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-lg bg-purple-100 p-3">
-                <Truck className="w-6 h-6 text-purple-600" />
+        {canManageOperations && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="rounded-lg bg-purple-100 p-3">
+                  <Truck className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">View Shipments</h3>
+                  <p className="text-sm text-muted-foreground">Track products in transit</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">View Shipments</h3>
-                <p className="text-sm text-muted-foreground">Track products in transit</p>
-              </div>
-            </div>
-            <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/dashboard/shipments')}>
-              View Shipments
-            </Button>
-          </CardContent>
-        </Card>
+              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/shipments')}>
+                View Shipments
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="p-6">
@@ -242,44 +270,68 @@ export default function DashboardOverview() {
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <h3 className="font-semibold">Verify QR Code</h3>
+                <h3 className="font-semibold">Verify Product</h3>
                 <p className="text-sm text-muted-foreground">Scan and verify product authenticity</p>
               </div>
             </div>
-            <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/dashboard/qr-verification')}>
-              Verify QR
+            <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/blockchain/verify')}>
+              Verify Product
             </Button>
           </CardContent>
         </Card>
+
+        {!canManageOperations && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="rounded-lg bg-slate-100 p-3">
+                  <History className="w-6 h-6 text-slate-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Verification History</h3>
+                  <p className="text-sm text-muted-foreground">Review your previous product checks</p>
+                </div>
+              </div>
+              <Button variant="outline" className="mt-4 w-full" onClick={() => navigate('/customer/history')}>
+                Open History
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Status Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Product Status Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {[
-              { status: 'active', label: 'Active', count: mockProducts.filter(p => p.status === 'active').length, color: 'bg-blue-100 text-blue-700' },
-              { status: 'in_transit', label: 'In Transit', count: mockProducts.filter(p => p.status === 'in_transit').length, color: 'bg-purple-100 text-purple-700' },
-              { status: 'delivered', label: 'Delivered', count: mockProducts.filter(p => p.status === 'delivered').length, color: 'bg-green-100 text-green-700' },
-              { status: 'inactive', label: 'Inactive', count: mockProducts.filter(p => p.status === 'inactive').length, color: 'bg-gray-100 text-gray-700' },
-              { status: 'recalled', label: 'Recalled', count: mockProducts.filter(p => p.status === 'recalled').length, color: 'bg-red-100 text-red-700' },
-            ].map((item) => (
-              <Button
-                key={item.status}
-                variant="outline"
-                className={`h-auto p-4 text-left ${item.color}`}
-                onClick={() => handleViewProducts(item.status)}
-              >
-                <div className="text-2xl font-bold">{item.count}</div>
-                <div className="text-sm font-medium">{item.label}</div>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {canManageOperations && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Product Status Summary
+              <StatusBadge label="Sample data" tone="warning" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { status: 'active', label: 'Active', count: mockProducts.filter(p => p.status === 'active').length, color: 'bg-blue-100 text-blue-700' },
+                { status: 'in_transit', label: 'In Transit', count: mockProducts.filter(p => p.status === 'in_transit').length, color: 'bg-purple-100 text-purple-700' },
+                { status: 'delivered', label: 'Delivered', count: mockProducts.filter(p => p.status === 'delivered').length, color: 'bg-green-100 text-green-700' },
+                { status: 'inactive', label: 'Inactive', count: mockProducts.filter(p => p.status === 'inactive').length, color: 'bg-gray-100 text-gray-700' },
+                { status: 'recalled', label: 'Recalled', count: mockProducts.filter(p => p.status === 'recalled').length, color: 'bg-red-100 text-red-700' },
+              ].map((item) => (
+                <Button
+                  key={item.status}
+                  variant="outline"
+                  className={`h-auto p-4 text-left ${item.color}`}
+                  onClick={() => handleViewProducts(item.status)}
+                >
+                  <div className="text-2xl font-bold">{item.count}</div>
+                  <div className="text-sm font-medium">{item.label}</div>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

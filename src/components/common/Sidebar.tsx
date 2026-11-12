@@ -1,18 +1,22 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Package,
-  Truck,
-  Warehouse,
-  Link2,
-  QrCode,
+  BadgeCheck,
   BarChart3,
-  Users,
-  Settings,
+  Building2,
+  ClipboardList,
   History,
-  X,
+  LayoutDashboard,
+  Link2,
+  Package,
   Package2,
+  QrCode,
+  Repeat2,
+  Settings,
   ShieldCheck,
+  Truck,
+  Users,
+  Warehouse,
+  X,
 } from 'lucide-react';
 import { cn } from '@/utils';
 import { useAuth } from '@/hooks';
@@ -26,63 +30,111 @@ interface NavItem {
   roles?: UserRole[]; // undefined = all roles
 }
 
-const NAV_ITEMS: NavItem[] = [
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Overview',
-    to: '/dashboard',
-    icon: LayoutDashboard,
+    label: 'Workspace',
+    items: [
+      {
+        label: 'Overview',
+        to: '/dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        label: 'Products',
+        to: '/dashboard/products',
+        icon: Package,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+    ],
   },
   {
-    label: 'Products',
-    to: '/dashboard/products',
-    icon: Package,
-    roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+    label: 'Operations',
+    items: [
+      {
+        label: 'Shipments',
+        to: '/shipments',
+        icon: Truck,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+      {
+        label: 'Shipment History',
+        to: '/shipment-history',
+        icon: ClipboardList,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+      {
+        label: 'Inventory',
+        to: '/inventory',
+        icon: Warehouse,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+      {
+        label: 'Warehouses',
+        to: '/warehouses',
+        icon: Building2,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+      {
+        label: 'Distributors',
+        to: '/distributors',
+        icon: Truck,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+      {
+        label: 'Ownership Transfers',
+        to: '/ownership-transfers',
+        icon: Repeat2,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+    ],
   },
   {
-    label: 'Shipments',
-    to: '/dashboard/shipments',
-    icon: Truck,
-    roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+    label: 'Trust & insight',
+    items: [
+      {
+        label: 'Blockchain',
+        to: '/blockchain',
+        icon: Link2,
+        roles: ['admin', 'manufacturer', 'distributor'],
+      },
+      {
+        label: 'Verify Product',
+        to: '/blockchain/verify',
+        icon: QrCode,
+      },
+      {
+        label: 'Verification History',
+        to: '/customer/history',
+        icon: History,
+      },
+      {
+        label: 'Analytics',
+        to: '/analytics',
+        icon: BarChart3,
+        roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
+      },
+    ],
   },
   {
-    label: 'Inventory',
-    to: '/dashboard/inventory',
-    icon: Warehouse,
-    roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
-  },
-  {
-    label: 'Blockchain',
-    to: '/dashboard/blockchain',
-    icon: Link2,
-    roles: ['admin', 'manufacturer', 'distributor'],
-  },
-  {
-    label: 'QR Verification',
-    to: '/dashboard/qr-verification',
-    icon: QrCode,
-  },
-  {
-    label: 'Analytics',
-    to: '/dashboard/analytics',
-    icon: BarChart3,
-    roles: ['admin', 'manufacturer', 'distributor', 'warehouse_manager', 'retailer'],
-  },
-  {
-    label: 'Product History',
-    to: '/customer/history',
-    icon: History,
-    roles: ['customer'],
-  },
-  {
-    label: 'User Management',
-    to: '/dashboard/users',
-    icon: Users,
-    roles: ['admin'],
-  },
-  {
-    label: 'Settings',
-    to: '/dashboard/settings',
-    icon: Settings,
+    label: 'Account',
+    items: [
+      {
+        label: 'User Management',
+        to: '/users',
+        icon: Users,
+        roles: ['admin'],
+      },
+      {
+        label: 'Settings',
+        to: '/settings',
+        icon: Settings,
+      },
+    ],
   },
 ];
 
@@ -96,9 +148,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.roles || (user && item.roles.includes(user.role))
-  );
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) => !item.roles || (user && item.roles.includes(user.role))
+    ),
+  })).filter((group) => group.items.length > 0);
+
+  // Highlight the most specific matching nav item, so nested routes such as
+  // /blockchain/verify do not also mark /blockchain as active.
+  const activePath = visibleGroups
+    .flatMap((group) => group.items)
+    .filter(
+      (item) =>
+        location.pathname === item.to ||
+        location.pathname.startsWith(`${item.to}/`)
+    )
+    .sort((a, b) => b.to.length - a.to.length)[0]?.to;
 
   return (
     <>
@@ -136,31 +202,47 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin py-4 px-3 space-y-1">
-          {visibleItems.map((item) => {
-            const isActive =
-              item.to === '/dashboard'
-                ? location.pathname === '/dashboard'
-                : location.pathname.startsWith(item.to);
-
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={onClose}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))]'
-                    : 'text-[hsl(var(--sidebar-fg))] hover:bg-[hsl(var(--sidebar-hover-bg))]'
-                )}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-5">
+          {visibleGroups.map((group) => (
+            <div key={group.label}>
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--sidebar-muted))]">
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = activePath === item.to;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={onClose}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-[hsl(var(--sidebar-active-bg))] text-[hsl(var(--sidebar-active-fg))]'
+                          : 'text-[hsl(var(--sidebar-fg))] hover:bg-[hsl(var(--sidebar-hover-bg))]'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
+
+        {/* Public verification shortcut */}
+        <div className="shrink-0 border-t border-white/10 px-4 py-3">
+          <Link
+            to="/verify"
+            className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-[hsl(var(--sidebar-muted))] transition-colors hover:bg-[hsl(var(--sidebar-hover-bg))] hover:text-[hsl(var(--sidebar-fg))]"
+          >
+            <BadgeCheck className="h-4 w-4 shrink-0" />
+            Public verification page
+          </Link>
+        </div>
 
         {/* User chip at bottom */}
         {user && (
@@ -183,4 +265,3 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     </>
   );
 }
-

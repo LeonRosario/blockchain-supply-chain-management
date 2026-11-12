@@ -25,3 +25,4 @@ export {
   AlertTitle,
   AlertDescription,
 } from './alert';
+export { ToastProvider, useToast } from './toast';

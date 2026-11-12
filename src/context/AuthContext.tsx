@@ -22,6 +22,7 @@ interface AuthContextValue {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (payload: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updates: Partial<AuthUser>) => void;
   hasRole: (role: UserRole | UserRole[]) => boolean;
   hasAnyRole: (roles: UserRole[]) => boolean;
 }
@@ -78,6 +79,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  /** Merge locally-updated profile fields into the authenticated session. */
+  const updateUser = useCallback((updates: Partial<AuthUser>) => {
+    setUser((current) => (current ? { ...current, ...updates } : current));
+  }, []);
+
   /** True if the authenticated user has the given role(s) */
   const hasRole = useCallback(
     (role: UserRole | UserRole[]) => {
@@ -104,6 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
+    updateUser,
     hasRole,
     hasAnyRole,
   };
